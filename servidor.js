@@ -1,52 +1,75 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
 
 const app = express();
+
+// Middlewares obligatorios
+app.use(cors({ origin: '*' }));
 app.use(express.json());
-app.use(cors());
 
-// Conexión a MongoDB en Railway
-const MONGO_URI = process.env.MONGO_URL || "mongodb://mongo:WMoYmLhWgXMzkLFpIdhqzwpKYCgVFAaI@altaria.proxy.rlwy.net:37634";
+// Conexión a la base de datos de Railway
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGO_URL;
 
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ Conectado a MongoDB en Railway'))
-  .catch(err => console.error('❌ Error de conexión:', err));
+if (!MONGO_URI) {
+  console.error("❌ ERROR: No se encontró la variable MONGO_URI en Railway.");
+} else {
+  mongoose.connect(MONGO_URI)
+    .then(() => console.log("✅ Conectado exitosamente a MongoDB en Railway"))
+    .catch((err) => console.error("❌ Error conectando a MongoDB:", err));
+}
 
-// Esquema de Repuestos
-const PartSchema = new mongoose.Schema({
+// Esquema del Repuesto
+const RepuestoSchema = new mongoose.Schema({
   part_name: String,
   car_brand: String,
   car_model: String,
-  car_year: String,
+  year: Number,
   price: Number,
   store_name: String,
-  location: String,
-  createdAt: { type: Date, default: Date.now }
+  store_address: String
+}, { timestamps: true });
+
+const Repuesto = mongoose.model('Repuesto', RepuestoSchema);
+
+// Ruta de prueba para verificar desde el navegador
+app.get('/', (req, res) => {
+  res.send('Servidor en Railway funcionando correctamente 🚀');
 });
 
-const Part = mongoose.model('Part', PartSchema);
-
-// Rutas de la API
-app.get('/api/parts', async (req, res) => {
+// GET: Obtener repuestos
+app.get('/api/repuestos', async (req, res) => {
   try {
-    const parts = await Part.find().sort({ createdAt: -1 });
-    res.json(parts);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const repuestos = await Repuesto.find().sort({ createdAt: -1 });
+    return res.status(200).json(repuestos);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
   }
 });
 
-app.post('/api/parts', async (req, res) => {
+// POST: Publicar repuesto
+app.post('/api/repuestos', async (req, res) => {
   try {
-    const newPart = new Part(req.body);
-    await newPart.save();
-    res.status(201).json(newPart);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
+    const { part_name, car_brand, car_model, year, price, store_name, store_address } = req.body;
+    
+    const nuevoRepuesto = new Repuesto({
+      part_name: part_name || 'Sin nombre',
+      car_brand: carBrand || '',
+      car_model: carModel || '',
+      year: Number(year) || 2022,
+      price: Number(price) || 0,
+      store_name: store_name || 'AutoRepuestos La Romana',
+      store_address: store_address || 'Av. Principal #100'
+    });
+
+    await nuevoRepuesto.save();
+    return res.status(201).json({ message: "Guardado con éxito", data: nuevoRepuesto });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor listo en el puerto ${PORT}`));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor activo en el puerto ${PORT}`);
+});
