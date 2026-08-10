@@ -8,15 +8,15 @@ const app = express();
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// Conexión a la base de datos de Railway
+// Acepta tanto MONGO_URI como MONGO_URL o la red privada de Railway
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGO_URL;
 
 if (!MONGO_URI) {
-  console.error("❌ ERROR: No se encontró la variable MONGO_URI en Railway.");
+  console.error("❌ No se encontró ninguna variable de MongoDB.");
 } else {
   mongoose.connect(MONGO_URI)
     .then(() => console.log("✅ Conectado exitosamente a MongoDB en Railway"))
-    .catch((err) => console.error("❌ Error conectando a MongoDB:", err));
+    .catch((err) => console.error("❌ Error al conectar a MongoDB:", err));
 }
 
 // Esquema del Repuesto
